@@ -1,0 +1,205 @@
+--checking correct data was imported
+
+SELECT * 
+FROM `portfolio-project-403818.CovidDeaths.CovidDeaths` 
+WHERE continent is not null
+ORDER BY 3, 4
+
+SELECT * 
+FROM `portfolio-project-403818.CovidVaccinations.CovidVaccinations` 
+WHERE continent is not null
+ORDER BY 3, 4
+
+
+--Selecting the data to be used
+
+SELECT location, date, total_cases, new_cases, total_deaths, population
+FROM `portfolio-project-403818.CovidDeaths.CovidDeaths` 
+WHERE continent is not null
+ORDER BY 1, 2
+
+
+--looking at total case vs total deaths in the US
+-- shows the likelihood of dying from COVID
+
+SELECT location, date, total_cases, total_deaths, (total_deaths/total_cases)*100 AS death_percentage
+FROM `portfolio-project-403818.CovidDeaths.CovidDeaths` 
+WHERE location = 'United States'
+WHERE continent is not null
+ORDER BY 1, 2
+
+
+-- looking at total cases vs the population in US
+-- showspercentage of population that's infected
+
+SELECT location, date, population, total_cases, (total_cases/population)*100 AS infected_pop_percentage
+FROM `portfolio-project-403818.CovidDeaths.CovidDeaths` 
+WHERE location = 'United States'
+WHERE continent is not null
+ORDER BY 1, 2
+
+-- looking at countries with highest infection rate compared to the population
+
+SELECT location, population, MAX(total_cases) AS highest_infection_count, MAX((total_cases/population))*100 AS infected_pop_percentage
+FROM `portfolio-project-403818.CovidDeaths.CovidDeaths`
+-- WHERE location = 'United States'
+WHERE continent is not null
+GROUP BY location, population
+ORDER BY infected_pop_percentage DESC
+
+
+-- shows countries with highest mortality rate 
+
+SELECT location, MAX(total_deaths) AS total_death_count
+FROM `portfolio-project-403818.CovidDeaths.CovidDeaths`
+-- WHERE location = 'United States'
+WHERE continent is not null
+GROUP BY location
+ORDER BY total_death_count DESC
+
+
+-- breaking data down by continent
+
+-- showing continents with highest death count
+
+SELECT location, MAX(total_deaths) AS total_death_count
+FROM `portfolio-project-403818.CovidDeaths.CovidDeaths`
+-- WHERE location = 'United States'
+WHERE continent is null
+GROUP BY location
+ORDER BY total_death_count DESC
+
+
+-- global numbers
+
+SELECT date, SUM(new_cases) AS total_cases, SUM(new_deaths) AS total_deaths, SUM(new_deaths)/SUM(new_cases) *100 AS death_percentage
+FROM `portfolio-project-403818.CovidDeaths.CovidDeaths` 
+--WHERE location = 'United States'
+WHERE continent is not null
+GROUP BY date
+ORDER BY 1, 2
+
+-- total death percentage
+
+SELECT SUM(new_cases) AS total_cases, SUM(new_deaths) AS total_deaths, SUM(new_deaths)/SUM(new_cases) *100 AS death_percentage
+FROM `portfolio-project-403818.CovidDeaths.CovidDeaths` 
+--WHERE location = 'United States'
+WHERE continent is not null
+--GROUP BY date
+ORDER BY 1, 2
+
+
+-- joining deaths table with vaccination table
+
+SELECT *
+FROM `portfolio-project-403818.CovidDeaths.CovidDeaths` AS dea
+JOIN `portfolio-project-403818.CovidVaccinations.CovidVaccinations` AS vac
+  ON dea.location = vac.location
+  AND dea.date = vac.date
+
+
+-- looking at total population vs vaccinations
+
+SELECT dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations, SUM(vac.new_vaccinations) OVER (PARTITION BY dea.location     ORDER BY dea.location, dea.date) AS rolling_people_vax
+--, (rolling_people_vax/population)*100
+FROM `portfolio-project-403818.CovidDeaths.CovidDeaths` AS dea
+JOIN `portfolio-project-403818.CovidVaccinations.CovidVaccinations` AS vac
+  ON dea.location = vac.location
+  AND dea.date = vac.date
+WHERE dea.continent is not null
+
+
+-- creating CTE
+
+WITH pop_vs_vax
+AS 
+(
+SELECT dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations, SUM(vac.new_vaccinations) OVER (PARTITION BY dea.location     ORDER BY dea.location, dea.date) AS rolling_people_vax
+--, (rolling_people_vax/population)*100
+FROM `portfolio-project-403818.CovidDeaths.CovidDeaths` AS dea
+JOIN `portfolio-project-403818.CovidVaccinations.CovidVaccinations` AS vac
+  ON dea.location = vac.location
+  AND dea.date = vac.date
+WHERE dea.continent is not null
+)
+SELECT *, (rolling_people_vax/population) * 100
+FROM pop_vs_vax
+
+
+-- temp table
+
+DROP TABLE IF EXISTS percent_pop_vax
+CREATE TEMP TABLE percent_pop_vax
+(
+  continent nvarchar(255),
+  location nvarchar(255),
+  date datetime,
+  population numeric,
+  new_vaccinations numeric,
+  rolling_people_vax numeric
+)
+INSERT INTO percent_pop_vax
+(
+  SELECT dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations, SUM(vac.new_vaccinations) OVER (PARTITION BY dea.location     ORDER BY dea.location, dea.date) AS rolling_people_vax
+--, (rolling_people_vax/population)*100
+FROM `portfolio-project-403818.CovidDeaths.CovidDeaths` AS dea
+JOIN `portfolio-project-403818.CovidVaccinations.CovidVaccinations` AS vac
+  ON dea.location = vac.location
+  AND dea.date = vac.date
+WHERE dea.continent is not null
+)
+
+SELECT *, (rolling_people_vax/population)*100
+FROM percent_pop_vax
+
+
+-- creating view to store data for future viz
+--death_percentage
+
+CREATE VIEW death_percentage AS
+SELECT SUM(new_cases) AS total_cases, SUM(new_deaths) AS total_deaths, SUM(new_deaths)/SUM(new_cases) *100 AS death_percentage
+FROM `portfolio-project-403818.CovidDeaths.CovidDeaths` 
+WHERE continent is not null
+ORDER BY 1, 2
+
+SELECT *
+FROM death_percentage
+
+-- percent_pop_vax
+
+CREATE VIEW percent_pop_vax AS 
+SELECT dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations, SUM(vac.new_vaccinations) OVER (PARTITION BY dea.location     ORDER BY dea.location, dea.date) AS rolling_people_vax
+--, (rolling_people_vax/population)*100
+FROM `portfolio-project-403818.CovidDeaths.CovidDeaths` AS dea
+JOIN `portfolio-project-403818.CovidVaccinations.CovidVaccinations` AS vac
+  ON dea.location = vac.location
+  AND dea.date = vac.date
+WHERE dea.continent is not null
+
+SELECT *
+FROM percent_pop_vax
+
+-- highest_death_count
+
+CREATE VIEW highest_death_count AS
+SELECT location, MAX(total_deaths) AS total_death_count
+FROM `portfolio-project-403818.CovidDeaths.CovidDeaths`
+-- WHERE location = 'United States'
+WHERE continent is null
+GROUP BY location
+ORDER BY total_death_count DESC 
+
+SELECT *
+FROM highest_death_count
+
+-- percent_pop_infected
+
+CREATE VIEW percent_pop_infected AS
+SELECT location, date, population, total_cases, (total_cases/population)*100 AS infected_pop_percentage
+FROM `portfolio-project-403818.CovidDeaths.CovidDeaths` 
+WHERE location = 'United States'
+WHERE continent is not null
+ORDER BY 1, 2
+
+SELECT *
+FROM percent_pop_infected
