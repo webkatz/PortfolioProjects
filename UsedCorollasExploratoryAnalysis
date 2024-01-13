@@ -1,0 +1,119 @@
+--checking data was imported
+
+SELECT  *
+FROM `portfolio-project-403818.UsedCorollas.UsedCorollas` 
+LIMIT 10
+
+
+--looking at how many vehicles are in the data
+
+SELECT COUNT (*)
+FROM `portfolio-project-403818.UsedCorollas.UsedCorollas`
+
+
+--selecting data to be used
+
+SELECT Id, Model, Price, Mfg_Year, KM, Fuel_Type, HP, Met_Color, Color, Automatic, Doors, Cylinders, ABS, Airbag_1, Airbag_2, Airco, CD_Player, Central_Lock, Powered_Windows, Power_Steering, Radio, Sport_Model, Metallic_Rim, Radio_cassette, Parking_Assistant, Tow_Bar
+FROM `portfolio-project-403818.UsedCorollas.UsedCorollas` 
+LIMIT 10
+ 
+
+--ordering by year, newest to oldest
+
+SELECT Id, Model, Price, Mfg_Year, KM, Fuel_Type, HP, Met_Color, Color, Automatic, Doors, Cylinders, ABS, Airbag_1, Airbag_2, Airco, CD_Player, Central_Lock, Powered_Windows, Power_Steering, Radio, Sport_Model, Metallic_Rim, Radio_cassette, Parking_Assistant, Tow_Bar
+FROM `portfolio-project-403818.UsedCorollas.UsedCorollas` 
+ORDER BY Mfg_Year DESC
+
+
+--ordering by oldest to newsest
+
+SELECT Id, Model, Price, Mfg_Year, KM, Fuel_Type, HP, Met_Color, Color, Automatic, Doors, Cylinders, ABS, Airbag_1, Airbag_2, Airco, CD_Player, Central_Lock, Powered_Windows, Power_Steering, Radio, Sport_Model, Metallic_Rim, Radio_cassette, Parking_Assistant, Tow_Bar
+FROM `portfolio-project-403818.UsedCorollas.UsedCorollas` 
+ORDER BY Mfg_Year ASC
+
+--data shows Corollas 1998-2004
+
+
+--avg price
+
+SELECT ROUND(AVG(Price)) AS AveragePrice
+FROM `portfolio-project-403818.UsedCorollas.UsedCorollas` 
+
+SELECT Mfg_Year, ROUND(AVG(Price))
+FROM `portfolio-project-403818.UsedCorollas.UsedCorollas` 
+GROUP BY Mfg_Year
+
+
+--avg mileage by yr
+
+SELECT Mfg_Year, ROUND(AVG(KM))
+FROM `portfolio-project-403818.UsedCorollas.UsedCorollas` 
+GROUP BY Mfg_Year
+
+
+--percentage of manual transmissions
+
+SELECT Id, Price, Automatic, Automatic/(SELECT COUNT(Automatic) FROM `portfolio-project-403818.UsedCorollas.UsedCorollas`)*100 as Manual_Percentage
+FROM `portfolio-project-403818.UsedCorollas.UsedCorollas`
+
+
+--most pop color
+
+SELECT Color, COUNT(Color) as color_count
+FROM `portfolio-project-403818.UsedCorollas.UsedCorollas`
+GROUP BY Color 
+ORDER BY color_count DESC
+
+
+--how many grey or blue manual transmission are there?
+
+SELECT Id, Model, Price, Mfg_Year, KM, Color, Automatic
+FROM `portfolio-project-403818.UsedCorollas.UsedCorollas` 
+WHERE Color = 'Grey' 
+OR Color = 'Blue'
+AND Automatic = 1
+ORDER BY Mfg_Year
+
+
+--creating view for future viz
+
+--avg price by year
+
+CREATE VIEW avg_price_yr AS
+SELECT Mfg_Year, ROUND(AVG(Price))
+FROM `portfolio-project-403818.UsedCorollas.UsedCorollas` 
+GROUP BY Mfg_Year
+
+SELECT *
+FROM avg_price_yr
+
+
+--avg mileage by year
+
+CREATE VIEW avg_mileage_yr AS
+
+SELECT Mfg_Year, ROUND(AVG(KM))
+FROM `portfolio-project-403818.UsedCorollas.UsedCorollas` 
+GROUP BY Mfg_Year
+
+
+--percentage of manual transmissions
+
+CREATE VIEW manual AS
+SELECT Id, Price, Automatic, Automatic/(SELECT COUNT(Automatic) FROM `portfolio-project-403818.UsedCorollas.UsedCorollas`)*100 as Manual_Percentage
+FROM `portfolio-project-403818.UsedCorollas.UsedCorollas`
+
+SELECT *
+FROM manual
+
+
+--most popular color
+
+CREATE VIEW pop_color AS
+SELECT Color, COUNT(Color) as color_count
+FROM `portfolio-project-403818.UsedCorollas.UsedCorollas`
+GROUP BY Color 
+ORDER BY color_count DESC
+
+SELECT * 
+FROM pop_color
